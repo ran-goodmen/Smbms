@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+
+    <context:annotation-config></context:annotation-config>
+
+    <!--注解扫描包-->
+    <context:component-scan base-package="org.qf"></context:component-scan>
+
+    <!--加载数据库配置文件-->
+    <context:property-placeholder location="classpath:db.properties" system-properties-mode="NEVER"></context:property-placeholder>
+
+    <!--配置数据源-->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${driver}"></property>
+        <property name="url" value="${url}"></property>
+        <property name="username" value="${username}"></property>
+        <property name="password" value="${password}"></property>
+    </bean>
+
+    <!--配置mybatis的sqlSessionFactory-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"></property>
+        <property name="typeAliasesPackage" value="org.qf.pojo"></property>
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                        <!--使用下面的方式配置参数，一行配置一个 -->
+                        <value>
+                            helperDialect=mysql
+                            reasonable=true
+                        </value>
+                    </property>
+                </bean>
+            </array>
+        </property>
+    </bean>
+    <!--tkmybatis的mapper扫描配置-->
+    <bean class="tk.mybatis.spring.mapper.MapperScannerConfigurer">
+       <property name="basePackage" value="org.qf.mapper"></property>
+    </bean>
+
+    <!--注解式事务-->
+    <!--事务管理器DatasourceTranscationManager-->
+
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <!--tx-->
+    <tx:annotation-driven transaction-manager="transactionManager"></tx:annotation-driven>
+
+
+    <!--配置shiro的过滤器-->
+    <!--自定义relam的实例-->
+    <bean id="myRealm" class="org.qf.realm.MyRelam"/>
+
+    <!--安全管理器-->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="myRealm"></property>
+    </bean>
+
+    <!--shiro过滤器-->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!--shiro的核心安全接口，这个属性必需-->
+        <property name="securityManager" ref="securityManager"></property>
+
+        <!--身份认证失败，则跳转到登录页面的配置-->
+        <property name="loginUrl" value="login"></property>
+
+        <!--shiro连接的约束配置-->
+        <property name="filterChainDefinitions">
+            <value>
+                /login=anon
+                /userList=authc
+            </value>
+        </property>
+    </bean>
+
+
+</beans>
